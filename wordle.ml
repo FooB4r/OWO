@@ -14,15 +14,15 @@ let string_of_status = function
 let string_of_status_array arr =
     Array.fold_left (fun acc e -> acc ^ (string_of_status e)) "" arr
 
-let is_win_match = Array.for_all (fun x -> x = Correct) 
+let is_win_match = Array.for_all (fun x -> x = Correct)
 
-(* Populates the set with each line of the file 
+(* Populates the set with each line of the file
  * Checks that all words are 5 letters long, discards them if not *)
 let set_from_file path =
     let set = StrSet.empty in
     let ic = open_in path in
     (* internal parsing function *)
-    let rec _sff set = 
+    let rec _sff set =
         try
             let line = input_line ic in
             match String.length line with
@@ -38,14 +38,14 @@ let set_from_file path =
         raise e
 
 (* Random access of the set using fold O(N) *)
-let get_random set = 
+let get_random set =
     let result = ref "" in
     let i = Random.int (StrSet.cardinal set) in
     let extract_fun = fun e index ->
         if index = i then (result := e; raise (Found e))
         else (index + 1)
     in
-    try 
+    try
         let _ = StrSet.fold extract_fun set 0 in ""
     with
     | Found s -> s
@@ -66,28 +66,7 @@ let wordle_cmp_exact secret guess =
 (* Mark all misplaced letters in guesses that appear in secret
  * it doesn't match letters that are already well placed and cannot double
  * match letters *)
-let wordle_cmp_match2 secret guess exact =
-    (* compare each letter of the guess with all the letters in the secret *)
-    let len = String.length secret in
-    let result = exact in
-    for i = 0 to len - 1 do
-        if Array.get result i = None then (
-            let hasMatched = ref false in
-            for j = 0 to len - 1 do
-                (* match not previously matched && only once per letter && equal *)
-                if (Array.get result j = None) && (not !hasMatched) &&
-                        (String.get guess i = String.get secret j) then (
-                    (* Printf.printf ">M(%i,%i): %c/%c\n" i j (String.get guess i) (String.get secret j); *)
-                    hasMatched := true;
-                    Array.set result i Misplaced;
-                )
-            done
-        )
-    done;
-    result
-
-
-let wordle_cmp_match secret guess exact =
+<let wordle_cmp_match secret guess exact =
     (* compare each letter of the guess with all the letters in the secret *)
     let len = String.length secret in
     let guess_match = exact in
@@ -131,5 +110,5 @@ let () =
             if is_win_match guess_result then
                 raise Exit
             else
-                () 
+                ()
     done
