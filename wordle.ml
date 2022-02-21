@@ -1,5 +1,15 @@
 module StrSet = Set.Make(String)
 
+(* CLI *)
+let usage_msg = "usage: wordle.exe [--secret <secret_word>] [--wordlen <len>(5)]"
+let debug = ref false
+let len = ref 5
+let secret = ref ""
+
+let parse_args =
+    [("--debug", Arg.Set debug, "Output debug information");
+    ("--secret", Arg.Set_string secret, "Set secret")]
+
 let secrets_path = "data/words"
 let guesses_path = "data/guesses"
 let _ = Random.self_init ()
@@ -51,6 +61,12 @@ let get_random set =
     | Found s -> s
     | e -> raise e
 
+(* Gets the secret either from the CLI args or the given set *)
+let get_secret set =
+    let secret = if !secret <> "" then !secret else get_random set in
+    if String.length secret <> 5 then raise (Invalid_argument secret);
+    String.uppercase_ascii secret
+
 (* Mark all well placed secret letters that match with guess Correct *)
 let wordle_cmp_exact secret guess =
     let len = String.length secret in
@@ -66,7 +82,7 @@ let wordle_cmp_exact secret guess =
 (* Mark all misplaced letters in guesses that appear in secret
  * it doesn't match letters that are already well placed and cannot double
  * match letters *)
-<let wordle_cmp_match secret guess exact =
+let wordle_cmp_match secret guess exact =
     (* compare each letter of the guess with all the letters in the secret *)
     let len = String.length secret in
     let guess_match = exact in
@@ -93,9 +109,10 @@ let wordle_cmp secret guess =
     wordle_cmp_match secret guess exact
 
 let () =
-    (* let guesses = set_from_file guesses_path in *)
+    Arg.parse parse_args (fun _ -> ()) usage_msg;
+    let guesses = set_from_file guesses_path in
     let secrets = set_from_file secrets_path in
-    let secret = get_random secrets in
+    let secret = get_secret secrets in
     print_endline secret;
     (* let turn = ref 0 in *)
     while true do
