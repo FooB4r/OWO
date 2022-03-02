@@ -1,9 +1,12 @@
 module StrSet = Set.Make(String)
 
+type guess_status = Correct | Misplaced | None
+type guess_result = guess_status array
+
 (* CLI *)
 let usage_msg = "usage: wordle.exe [--secret <secret_word>] [--wordlen <len>(5)]"
 let debug = ref false
-let len = ref 5
+(* let len = ref 5 *)
 let secret = ref ""
 
 let parse_args =
@@ -12,17 +15,17 @@ let parse_args =
 
 let secrets_path = "data/words"
 let guesses_path = "data/guesses"
-let _ = Random.self_init ()
+let () = Random.self_init ()
 exception Found of string
 
-type guess_status = Correct | Misplaced | None
 let string_of_status = function
     | Correct -> "Y"
     | Misplaced -> "M"
     | None -> "N"
 
 let string_of_status_array arr =
-    Array.fold_left (fun acc e -> acc ^ (string_of_status e)) "" arr
+    let arr = Array.map string_of_status arr in
+    String.concat "" (Array.to_list arr)
 
 let is_win_match = Array.for_all (fun x -> x = Correct)
 
@@ -51,7 +54,7 @@ let set_from_file path =
 let get_random set =
     let result = ref "" in
     let i = Random.int (StrSet.cardinal set) in
-    let extract_fun = fun e index ->
+    let extract_fun e index =
         if index = i then (result := e; raise (Found e))
         else (index + 1)
     in
@@ -70,14 +73,13 @@ let get_secret set =
 (* Mark all well placed secret letters that match with guess Correct *)
 let wordle_cmp_exact secret guess =
     let len = String.length secret in
-    let result = Array.make len None in
-    for i = 0 to len - 1 do
-        if String.get secret i = String.get guess i then
-            Array.set result i Correct
-        else
-            ()
-    done;
-    result
+    let result = Array.init len (fun _ -> None) in
+    Array.mapi (fun i e ->
+            if String.get secret i = String.get guess i then
+                Correct
+            else e
+        )
+        result
 
 (* Mark all misplaced letters in guesses that appear in secret
  * it doesn't match letters that are already well placed and cannot double
@@ -91,7 +93,7 @@ let wordle_cmp_match secret guess exact =
         let hasMatched = ref false in
         for j = 0 to len - 1 do
             (* match not previously matched && only once per letter && equal *)
-            if (Array.get guess_match i = None) && (Array.get secret_match j = None) &&
+            if (guess_match.(i) = None) && (secret_match.(j) = None) &&
                 (not !hasMatched) && (String.get guess i = String.get secret j)
                 then (
                 (* Printf.printf">M(%i,%i): %c/%c\n"
@@ -125,7 +127,5 @@ let () =
             let guess_result = wordle_cmp secret guess in
             print_endline (string_of_status_array guess_result);
             if is_win_match guess_result then
-                raise Exit
-            else
-                ()
+                exit 0
     done
